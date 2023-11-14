@@ -23,17 +23,17 @@ class CRUDCharityProject(CRUDBase):
         return db_charity_project_id.scalars().first()
 
     async def get_projects_by_completion_rate(
-                self,
-                session: AsyncSession,
-                ) -> list[dict[str, int]]:
+            self,
+            session: AsyncSession,
+    ) -> list[dict[str, int]]:
         closed_charity_projects = await session.execute(
-                select([CharityProject.name,
-                        (func.julianday(CharityProject.close_date) -
-                         func.julianday(CharityProject.create_date)).label(
-                             LABEL_FIELD),
-                        CharityProject.description]).where(
-                            CharityProject.fully_invested).order_by(
-                                LABEL_FIELD))
+            select([CharityProject.name,
+                    (func.julianday(CharityProject.close_date) -
+                     func.julianday(CharityProject.create_date)).label(
+                         LABEL_FIELD),
+                    CharityProject.description]).where(
+                        CharityProject.fully_invested).order_by(
+                            LABEL_FIELD))
         return closed_charity_projects.all()
 
 
