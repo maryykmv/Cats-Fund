@@ -10,8 +10,10 @@ from app.services.google_api import (set_user_permissions,
                                      spreadsheets_create,
                                      spreadsheets_update_value)
 
+
+ERROR_MESSAGE = 'Отчет не сформировался'
+
 router = APIRouter()
-MESSAGE = 'Создан документ с ID https://docs.google.com/spreadsheets/d/{}'
 
 
 @router.post(
@@ -28,9 +30,14 @@ async def get_report(
     closed_charity_projects = (
         await charity_project_crud.get_projects_by_completion_rate(session)
     )
-    spreadsheetid = await spreadsheets_create(wrapper_services)
-    await set_user_permissions(spreadsheetid, wrapper_services)
-    await spreadsheets_update_value(spreadsheetid,
-                                    closed_charity_projects,
-                                    wrapper_services)
-    return MESSAGE.format(spreadsheetid)
+    spreadsheet_id, spreadsheet_url = await spreadsheets_create(
+        wrapper_services
+    )
+    try:
+        await set_user_permissions(spreadsheet_id, wrapper_services)
+        await spreadsheets_update_value(spreadsheet_id,
+                                        closed_charity_projects,
+                                        wrapper_services)
+    except ValueError:
+        print(ERROR_MESSAGE)
+    return spreadsheet_url

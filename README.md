@@ -45,6 +45,8 @@ _[Google Report](http://127.0.0.1:8000/google/)_
 - SQLAlchemy
 - SQLite
 - Alembic==1.7.7
+- Google Sheets API
+- Google Drive API
 
 ## Как запустить проект
 

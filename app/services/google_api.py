@@ -4,51 +4,57 @@ from aiogoogle import Aiogoogle
 from app.core.config import settings
 
 FORMAT = '%Y/%m/%d %H:%M:%S'
-NOW_DATE_TIME = datetime.now().strftime(FORMAT)
-LOCALE = 'ru_RU'
-DEFAULT_SHEET_ID = 0
-DEFAULT_SHEET_TITLE = 'Лист1'
-DEFAULT_SHEET_TYPE = 'GRID'
-ROW_COUNT = 50
-COLUMN_COUNT = 5
 PERMISSION_TYPE = 'user'
 PERMISSION_ROLE = 'writer'
-TITLE = 'Отчет от {}'
-TABLE_VALUES = [
-    [TITLE.format(NOW_DATE_TIME)],
-    ['Топ проектов по скорости закрытия'],
-    ['Название проекта', 'Время сбора', 'Описание']
-]
+TITLE = 'Отчет от'
+DESCRIPTION_REPORT = 'Топ проектов по скорости закрытия'
+NAME_PROJECT = 'Название проекта'
+TIME_COLLECTING = 'Время сбора'
+DESCRIPTION_PROJECT = 'Описание'
 DEFAILT_MAJOR_DIMENSION = 'ROWS'
-RANGE = 'A1:C50'
+DEFAULT_ROWS_COUNT = 100
+DEFAULT_COLUMNS_COUNT = 11
 VALUEIO = 'USER_ENTERED'
 SHEET_SERVICE_NAME = 'sheets'
 SHEET_SERVICE_VERSION = 'v4'
 DRIVE_SERVICE_NAME = 'drive'
 DRIVE_SERVICE_VERSION = 'v3'
+SPREADSHEET_BODY = dict(
+    properties=dict(
+        title=TITLE,
+        locale='ru_RU',
+    ),
+    sheets=[dict(properties=dict(
+        sheetType='GRID',
+        sheetId=0,
+        title='Лист1',
+        gridProperties=dict(
+            rowCount=100,
+            columnCount=11,
+        )
+    ))]
+)
+ERROR_MESSAGE = ('Количество строк = {rows_count} и столбцов = {colums_count} '
+                 'превышают значения по умолчанию {def_rows_count}, '
+                 '{def_colums_count}'
+                 )
 
 
 async def spreadsheets_create(wrapper_services: Aiogoogle) -> str:
+    now_date_time = datetime.now().strftime(FORMAT)
     service = await wrapper_services.discover(
         SHEET_SERVICE_NAME,
         SHEET_SERVICE_VERSION
     )
-    spreadsheet_body = {
-        'properties': {'title': TITLE.format(NOW_DATE_TIME),
-                       'locale': LOCALE},
-        'sheets': [{'properties': {'sheetType': DEFAULT_SHEET_TYPE,
-                                   'sheetId': DEFAULT_SHEET_ID,
-                                   'title': DEFAULT_SHEET_TITLE,
-                                   'gridProperties': {
-                                       'rowCount': ROW_COUNT,
-                                       'columnCount': COLUMN_COUNT}}}]
-    }
-    return (await wrapper_services.as_service_account(
-        service.spreadsheets.create(json=spreadsheet_body)))['spreadsheetId']
+    spreadsheet_body = SPREADSHEET_BODY.copy()
+    spreadsheet_body['properties']['title'] += now_date_time
+    response = await wrapper_services.as_service_account(
+        service.spreadsheets.create(json=spreadsheet_body))
+    return response['spreadsheetId'], response['spreadsheetUrl']
 
 
 async def set_user_permissions(
-        spreadsheetid: str,
+        spreadsheet_id: str,
         wrapper_services: Aiogoogle
 ) -> None:
     permissions_body = {
@@ -62,36 +68,56 @@ async def set_user_permissions(
     )
     await wrapper_services.as_service_account(
         service.permissions.create(
-            fileId=spreadsheetid,
+            fileId=spreadsheet_id,
             json=permissions_body,
             fields='id'
         ))
 
 
 async def spreadsheets_update_value(
-        spreadsheetid: str,
+        spreadsheet_id: str,
         charity_projects: list,
         wrapper_services: Aiogoogle
 ) -> None:
+    now_date_time = datetime.now().strftime(FORMAT)
     service = await wrapper_services.discover(
         SHEET_SERVICE_NAME,
         SHEET_SERVICE_VERSION
     )
-    for charity_project in charity_projects:
-        new_row = [
-            charity_project['name'],
-            str(timedelta(days=charity_project['date_diff'])),
-            charity_project['description']
-        ]
-        TABLE_VALUES.append(new_row)
+    table_values = [
+        [TITLE.format(now_date_time)],
+        [DESCRIPTION_REPORT],
+        [NAME_PROJECT, TIME_COLLECTING, DESCRIPTION_PROJECT]
+    ]
+    table_values = [*table_values,
+                    *[list(map(str,
+                               [charity_project['name'],
+                                str(timedelta(
+                                    days=charity_project['date_diff'])
+                                    ),
+                                charity_project['description']]))
+                        for charity_project in charity_projects]
+                    ]
+    columns_count = max(len(to_count) for to_count in table_values)
+    rows_count = len(table_values)
+    if (DEFAULT_ROWS_COUNT < rows_count or
+            DEFAULT_COLUMNS_COUNT < columns_count):
+        raise ValueError(
+            ERROR_MESSAGE.format(
+                rows_count=rows_count,
+                columns_count=columns_count,
+                def_rows_count=DEFAULT_ROWS_COUNT,
+                def_columns_count=DEFAULT_COLUMNS_COUNT)
+        )
+
     await wrapper_services.as_service_account(
         service.spreadsheets.values.update(
-            spreadsheetId=spreadsheetid,
-            range=RANGE,
+            spreadsheetId=spreadsheet_id,
+            range=f'R1C1:R{rows_count}C{columns_count}',
             valueInputOption=VALUEIO,
             json={
                 'majorDimension': DEFAILT_MAJOR_DIMENSION,
-                'values': TABLE_VALUES
+                'values': table_values
             }
         )
     )
