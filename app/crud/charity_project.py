@@ -30,8 +30,8 @@ class CRUDCharityProject(CRUDBase):
             select(
                 [CharityProject.name,
                  (
-                  func.julianday(CharityProject.close_date) -
-                  func.julianday(CharityProject.create_date)
+                     func.julianday(CharityProject.close_date) -
+                     func.julianday(CharityProject.create_date)
                   ).label(LABEL_FIELD),
                  CharityProject.description]
             ).where(CharityProject.fully_invested).order_by(LABEL_FIELD))
