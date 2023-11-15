@@ -8,14 +8,14 @@ DEFAILT_MAJOR_DIMENSION = 'ROWS'
 MAX_ROWS_COUNT = 100
 MAX_COLUMNS_COUNT = 11
 SHEET_BODY = [dict(properties=dict(
-        sheetType='GRID',
-        sheetId=0,
-        title='Лист1',
-        gridProperties=dict(
-            rowCount=MAX_ROWS_COUNT,
-            columnCount=MAX_COLUMNS_COUNT,
-        )
-    ))]
+    sheetType='GRID',
+    sheetId=0,
+    title='Лист1',
+    gridProperties=dict(
+        rowCount=MAX_ROWS_COUNT,
+        columnCount=MAX_COLUMNS_COUNT,
+    )
+))]
 TABLE_VALUES = [
     ['Отчет от', ],
     ['Топ проектов по скорости закрытия'],
@@ -80,7 +80,7 @@ async def spreadsheets_update_value(
                             charity_project['description']
                         ]
                         for charity_project in charity_projects
-                     ]
+                    ]
                     ]
     columns_count = max(map(len, table_values))
     rows_count = len(table_values)
