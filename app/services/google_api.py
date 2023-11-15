@@ -16,7 +16,7 @@ DRIVE_SERVICE_NAME = 'drive'
 DRIVE_SERVICE_VERSION = 'v3'
 SPREADSHEET_BODY = dict(
     properties=dict(
-        title='Отчет от',
+        title='',
         locale='ru_RU',
     ),
     sheets=[dict(properties=dict(
@@ -46,10 +46,11 @@ async def spreadsheets_create(wrapper_services: Aiogoogle) -> str:
         SHEET_SERVICE_NAME,
         SHEET_SERVICE_VERSION
     )
-    spreadsheet_body = SPREADSHEET_BODY.copy()
-    spreadsheet_body['properties']['title'] += now_date_time
+    SPREADSHEET_BODY['properties']['title'] = 'Отчет от {}'.format(
+        now_date_time
+    )
     response = await wrapper_services.as_service_account(
-        service.spreadsheets.create(json=spreadsheet_body))
+        service.spreadsheets.create(json=SPREADSHEET_BODY))
     return response['spreadsheetId'], response['spreadsheetUrl']
 
 
@@ -86,7 +87,7 @@ async def spreadsheets_update_value(
     )
     table_values = TABLE_VALUES.copy()
     table_values[0].append(now_date_time)
-    table_values = [*TABLE_VALUES,
+    table_values = [*table_values,
                     *[list(map(str,
                                [charity_project['name'],
                                 timedelta(
