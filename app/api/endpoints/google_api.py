@@ -36,12 +36,11 @@ async def get_report(
         wrapper_services
     )
     await set_user_permissions(spreadsheet_id, wrapper_services)
-    try:
+    if spreadsheet_id:
         await spreadsheets_update_value(
             spreadsheet_id,
             closed_charity_projects,
             wrapper_services
         )
         return spreadsheet_url
-    except ValueError:
-        print(ERROR_MESSAGE)
+    raise ValueError(ERROR_MESSAGE)

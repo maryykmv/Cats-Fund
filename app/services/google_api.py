@@ -30,12 +30,12 @@ SPREADSHEET_BODY = dict(
     ))]
 )
 TABLE_VALUES = [
-    ['Отчет от', {}],
+    ['Отчет от', ],
     ['Топ проектов по скорости закрытия'],
     ['Название проекта', 'Время сбора', 'Описание']
 ]
 MESSAGE_VALUES_ERROR = (
-    f'Количество строк = {{rows_count}} и столбцов = {{colums_count}} '
+    f'Количество строк = {{rows_count}} и столбцов = {{columns_count}} '
     f'превышают {DEFAULT_ROWS_COUNT}, {DEFAULT_COLUMNS_COUNT}'
 )
 
@@ -86,7 +86,7 @@ async def spreadsheets_update_value(
     )
     table_values = TABLE_VALUES.copy()
     table_values[0].append(now_date_time)
-    table_values = [*table_values,
+    table_values = [*TABLE_VALUES,
                     *[list(map(str,
                                [charity_project['name'],
                                 timedelta(
