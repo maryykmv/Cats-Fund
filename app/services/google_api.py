@@ -91,8 +91,7 @@ async def spreadsheets_update_value(
                     *[list(map(str,
                                [charity_project['name'],
                                 timedelta(
-                                    days=charity_project['date_diff']
-                                ),
+                                    days=charity_project['date_diff']),
                                 charity_project['description']]))
                         for charity_project in charity_projects]
                     ]
