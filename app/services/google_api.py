@@ -4,19 +4,12 @@ from aiogoogle import Aiogoogle
 from app.core.config import settings
 
 FORMAT = '%Y/%m/%d %H:%M:%S'
-PERMISSION_TYPE = 'user'
-PERMISSION_ROLE = 'writer'
 DEFAILT_MAJOR_DIMENSION = 'ROWS'
-DEFAULT_ROWS_COUNT = 100
-DEFAULT_COLUMNS_COUNT = 11
-VALUEIO = 'USER_ENTERED'
-SHEET_SERVICE_NAME = 'sheets'
-SHEET_SERVICE_VERSION = 'v4'
-DRIVE_SERVICE_NAME = 'drive'
-DRIVE_SERVICE_VERSION = 'v3'
+MAX_ROWS_COUNT = 100
+MAX_COLUMNS_COUNT = 11
 SPREADSHEET_BODY = dict(
     properties=dict(
-        title='',
+        title=f'Отчет от {datetime.now().strftime(FORMAT)}',
         locale='ru_RU',
     ),
     sheets=[dict(properties=dict(
@@ -24,30 +17,26 @@ SPREADSHEET_BODY = dict(
         sheetId=0,
         title='Лист1',
         gridProperties=dict(
-            rowCount=DEFAULT_ROWS_COUNT,
-            columnCount=DEFAULT_COLUMNS_COUNT,
+            rowCount=MAX_ROWS_COUNT,
+            columnCount=MAX_COLUMNS_COUNT,
         )
     ))]
 )
 TABLE_VALUES = [
-    ['Отчет от', ],
+    ['Отчет от', f'{datetime.now().strftime(FORMAT)}'],
     ['Топ проектов по скорости закрытия'],
     ['Название проекта', 'Время сбора', 'Описание']
 ]
 MESSAGE_VALUES_ERROR = (
-    f'Количество строк = {{rows_count}} и столбцов = {{columns_count}} '
-    f'превышают {DEFAULT_ROWS_COUNT}, {DEFAULT_COLUMNS_COUNT}'
+    'Количество строк = {rows_count} и столбцов = {columns_count} '
+    f'превышают {MAX_ROWS_COUNT}, {MAX_COLUMNS_COUNT}'
 )
 
 
 async def spreadsheets_create(wrapper_services: Aiogoogle) -> str:
-    now_date_time = datetime.now().strftime(FORMAT)
     service = await wrapper_services.discover(
-        SHEET_SERVICE_NAME,
-        SHEET_SERVICE_VERSION
-    )
-    SPREADSHEET_BODY['properties']['title'] = 'Отчет от {}'.format(
-        now_date_time
+        'sheets',
+        'v4'
     )
     response = await wrapper_services.as_service_account(
         service.spreadsheets.create(json=SPREADSHEET_BODY))
@@ -59,13 +48,13 @@ async def set_user_permissions(
         wrapper_services: Aiogoogle
 ) -> None:
     permissions_body = {
-        'type': PERMISSION_TYPE,
-        'role': PERMISSION_ROLE,
+        'type': 'user',
+        'role': 'writer',
         'emailAddress': settings.email
     }
     service = await wrapper_services.discover(
-        DRIVE_SERVICE_NAME,
-        DRIVE_SERVICE_VERSION
+        'drive',
+        'v3'
     )
     await wrapper_services.as_service_account(
         service.permissions.create(
@@ -80,26 +69,25 @@ async def spreadsheets_update_value(
         charity_projects: list,
         wrapper_services: Aiogoogle
 ) -> None:
-    now_date_time = datetime.now().strftime(FORMAT)
     service = await wrapper_services.discover(
-        SHEET_SERVICE_NAME,
-        SHEET_SERVICE_VERSION
+        'sheets',
+        'v4'
     )
-    table_values = TABLE_VALUES.copy()
-    table_values[0].append(now_date_time)
-    table_values = [*table_values,
-                    *[list(map(str,
-                               [charity_project['name'],
-                                timedelta(
-                                    days=charity_project['date_diff']),
-                                charity_project['description']]))
-                        for charity_project in charity_projects]
+    table_values = [*TABLE_VALUES,
+                    *[
+                        [
+                            charity_project['name'],
+                            str(timedelta(days=charity_project['date_diff'])),
+                            charity_project['description']
+                        ]
+                        for charity_project in charity_projects
+                     ]
                     ]
     columns_count = max(map(len, table_values))
     rows_count = len(table_values)
     if (
-        DEFAULT_ROWS_COUNT < rows_count or
-        DEFAULT_COLUMNS_COUNT < columns_count
+        MAX_ROWS_COUNT < rows_count or
+        MAX_COLUMNS_COUNT < columns_count
     ):
         raise ValueError(
             MESSAGE_VALUES_ERROR.format(
@@ -112,7 +100,7 @@ async def spreadsheets_update_value(
         service.spreadsheets.values.update(
             spreadsheetId=spreadsheet_id,
             range=f'R1C1:R{rows_count}C{columns_count}',
-            valueInputOption=VALUEIO,
+            valueInputOption='USER_ENTERED',
             json={
                 'majorDimension': DEFAILT_MAJOR_DIMENSION,
                 'values': table_values
