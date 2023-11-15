@@ -7,12 +7,7 @@ FORMAT = '%Y/%m/%d %H:%M:%S'
 DEFAILT_MAJOR_DIMENSION = 'ROWS'
 MAX_ROWS_COUNT = 100
 MAX_COLUMNS_COUNT = 11
-SPREADSHEET_BODY = dict(
-    properties=dict(
-        title=f'Отчет от {datetime.now().strftime(FORMAT)}',
-        locale='ru_RU',
-    ),
-    sheets=[dict(properties=dict(
+SHEET_BODY = [dict(properties=dict(
         sheetType='GRID',
         sheetId=0,
         title='Лист1',
@@ -21,9 +16,8 @@ SPREADSHEET_BODY = dict(
             columnCount=MAX_COLUMNS_COUNT,
         )
     ))]
-)
 TABLE_VALUES = [
-    ['Отчет от', f'{datetime.now().strftime(FORMAT)}'],
+    ['Отчет от', ],
     ['Топ проектов по скорости закрытия'],
     ['Название проекта', 'Время сбора', 'Описание']
 ]
@@ -38,8 +32,13 @@ async def spreadsheets_create(wrapper_services: Aiogoogle) -> str:
         'sheets',
         'v4'
     )
+    spreadsheet_body = {
+        'properties': {'title': f'Отчет от {datetime.now().strftime(FORMAT)}',
+                       'locale': 'ru_RU'},
+        'sheets': SHEET_BODY
+    }
     response = await wrapper_services.as_service_account(
-        service.spreadsheets.create(json=SPREADSHEET_BODY))
+        service.spreadsheets.create(json=spreadsheet_body))
     return response['spreadsheetId'], response['spreadsheetUrl']
 
 
@@ -95,7 +94,7 @@ async def spreadsheets_update_value(
                 columns_count=columns_count
             )
         )
-
+    table_values[0].append(datetime.now().strftime(FORMAT))
     await wrapper_services.as_service_account(
         service.spreadsheets.values.update(
             spreadsheetId=spreadsheet_id,
