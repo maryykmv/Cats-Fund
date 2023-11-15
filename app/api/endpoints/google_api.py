@@ -6,9 +6,11 @@ from app.core.db import get_async_session
 from app.core.google_client import get_service
 from app.core.user import current_superuser
 from app.crud.charity_project import charity_project_crud
-from app.services.google_api import (set_user_permissions,
-                                     spreadsheets_create,
-                                     spreadsheets_update_value)
+from app.services.google_api import (
+    set_user_permissions,
+    spreadsheets_create,
+    spreadsheets_update_value
+)
 
 
 ERROR_MESSAGE = 'Отчет не сформировался'
@@ -33,11 +35,13 @@ async def get_report(
     spreadsheet_id, spreadsheet_url = await spreadsheets_create(
         wrapper_services
     )
+    await set_user_permissions(spreadsheet_id, wrapper_services)
     try:
-        await set_user_permissions(spreadsheet_id, wrapper_services)
-        await spreadsheets_update_value(spreadsheet_id,
-                                        closed_charity_projects,
-                                        wrapper_services)
+        await spreadsheets_update_value(
+            spreadsheet_id,
+            closed_charity_projects,
+            wrapper_services
+        )
+        return spreadsheet_url
     except ValueError:
         print(ERROR_MESSAGE)
-    return spreadsheet_url

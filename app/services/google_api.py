@@ -6,11 +6,6 @@ from app.core.config import settings
 FORMAT = '%Y/%m/%d %H:%M:%S'
 PERMISSION_TYPE = 'user'
 PERMISSION_ROLE = 'writer'
-TITLE = 'Отчет от'
-DESCRIPTION_REPORT = 'Топ проектов по скорости закрытия'
-NAME_PROJECT = 'Название проекта'
-TIME_COLLECTING = 'Время сбора'
-DESCRIPTION_PROJECT = 'Описание'
 DEFAILT_MAJOR_DIMENSION = 'ROWS'
 DEFAULT_ROWS_COUNT = 100
 DEFAULT_COLUMNS_COUNT = 11
@@ -21,7 +16,7 @@ DRIVE_SERVICE_NAME = 'drive'
 DRIVE_SERVICE_VERSION = 'v3'
 SPREADSHEET_BODY = dict(
     properties=dict(
-        title=TITLE,
+        title='Отчет от',
         locale='ru_RU',
     ),
     sheets=[dict(properties=dict(
@@ -29,15 +24,20 @@ SPREADSHEET_BODY = dict(
         sheetId=0,
         title='Лист1',
         gridProperties=dict(
-            rowCount=100,
-            columnCount=11,
+            rowCount=DEFAULT_ROWS_COUNT,
+            columnCount=DEFAULT_COLUMNS_COUNT,
         )
     ))]
 )
-ERROR_MESSAGE = ('Количество строк = {rows_count} и столбцов = {colums_count} '
-                 'превышают значения по умолчанию {def_rows_count}, '
-                 '{def_colums_count}'
-                 )
+TABLE_VALUES = [
+    ['Отчет от', {}],
+    ['Топ проектов по скорости закрытия'],
+    ['Название проекта', 'Время сбора', 'Описание']
+]
+MESSAGE_VALUES_ERROR = (
+    f'Количество строк = {{rows_count}} и столбцов = {{colums_count}} '
+    f'превышают {DEFAULT_ROWS_COUNT}, {DEFAULT_COLUMNS_COUNT}'
+)
 
 
 async def spreadsheets_create(wrapper_services: Aiogoogle) -> str:
@@ -84,30 +84,28 @@ async def spreadsheets_update_value(
         SHEET_SERVICE_NAME,
         SHEET_SERVICE_VERSION
     )
-    table_values = [
-        [TITLE.format(now_date_time)],
-        [DESCRIPTION_REPORT],
-        [NAME_PROJECT, TIME_COLLECTING, DESCRIPTION_PROJECT]
-    ]
+    table_values = TABLE_VALUES.copy()
+    table_values[0].append(now_date_time)
     table_values = [*table_values,
                     *[list(map(str,
                                [charity_project['name'],
-                                str(timedelta(
-                                    days=charity_project['date_diff'])
-                                    ),
+                                timedelta(
+                                    days=charity_project['date_diff']
+                                ),
                                 charity_project['description']]))
                         for charity_project in charity_projects]
                     ]
-    columns_count = max(len(to_count) for to_count in table_values)
+    columns_count = max(map(len, table_values))
     rows_count = len(table_values)
-    if (DEFAULT_ROWS_COUNT < rows_count or
-            DEFAULT_COLUMNS_COUNT < columns_count):
+    if (
+        DEFAULT_ROWS_COUNT < rows_count or
+        DEFAULT_COLUMNS_COUNT < columns_count
+    ):
         raise ValueError(
-            ERROR_MESSAGE.format(
+            MESSAGE_VALUES_ERROR.format(
                 rows_count=rows_count,
-                columns_count=columns_count,
-                def_rows_count=DEFAULT_ROWS_COUNT,
-                def_columns_count=DEFAULT_COLUMNS_COUNT)
+                columns_count=columns_count
+            )
         )
 
     await wrapper_services.as_service_account(
