@@ -37,13 +37,14 @@ async def get_report(
         wrapper_services
     )
     await set_user_permissions(spreadsheet_id, wrapper_services)
-    if (await spreadsheets_update_value(
-        spreadsheet_id,
-        closed_charity_projects,
-        wrapper_services
-    )):
+    try:
+        await spreadsheets_update_value(
+            spreadsheet_id,
+            closed_charity_projects,
+            wrapper_services)
+        return spreadsheet_url
+    except HTTPException:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=ERROR_MESSAGE,
         )
-    return spreadsheet_url
